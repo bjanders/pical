@@ -1,0 +1,15 @@
+pical -- an iCalender to PCAL converter application
+
+pical reads iCalender (.ics) files and converts them to PCAL
+compatible files. pical does not make reoccurring events in PCAL, but
+makes single date entries for a given time period as defined in the
+source iCalender file. This is sufficent when you want to use another
+calender app, but want to use the nice layout of PCAL.
+
+PCAL can be found here: http://pcal.sourceforge.net/
+
+Copyright (C) Bjorn Andersson <bjorn@iki.fi>
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+version 2 as published by the Free Software Foundation.

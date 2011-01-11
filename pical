@@ -1,0 +1,82 @@
+#!/usr/bin/python
+# Copyright (C) Bjorn Andersson <bjorn@iki.fi>
+
+from datetime import datetime, date
+from dateutil.relativedelta import relativedelta
+from dateutil.tz import tzlocal
+import sys
+import vobject
+from urllib import urlopen
+
+year = datetime.now().year
+month = datetime.now().month
+monthcount = 3
+
+
+
+class PcalEvent(object):
+    def __init__(self, dtstart, dtend, desc):
+        self.dtstart = dtstart
+        self.dtend = dtend
+        self.desc = desc
+    def write(self, f):
+        if type(self.dtstart) is date:
+            f.write("%s\t%s\n" % (self.dtstart.strftime("%m/%d/%Y"), self.desc.encode("Latin1")))
+        elif type(self.dtstart) is datetime:
+            f.write("%s\t%s-%s %s\n" %
+                    (self.dtstart.strftime("%m/%d/%Y"),
+                     self.dtstart.strftime("%H:%M"),
+                     self.dtend.strftime("%H:%M"),
+                     self.desc.encode("Latin1")))
+        else:
+            raise Exception("Unkown date type %s" % self.desc)
+        
+
+firsttimetz = datetime(year, month, 1, tzinfo=tzlocal())
+lasttimetz = firsttimetz + relativedelta(months=monthcount, days=-1)
+firsttime = datetime(year, month, 1)
+lasttime = firsttime + relativedelta(months=monthcount, days=-1)
+firstday = date(year, month, 1)
+lastday = firstday + relativedelta(months=monthcount, days=-1)
+
+eventlist = []
+
+
+icalfile = urlopen(sys.argv[1])
+
+ical = vobject.readOne(icalfile)
+for vevent in ical.vevent_list:
+    if type(vevent.dtstart.value) is datetime:
+        fd = firsttimetz
+        ld = lasttimetz
+    elif type(vevent.dtstart.value) is date:
+        if hasattr(vevent, 'rrule'):
+            fd = firsttime
+            ld = lasttime
+        else:
+            fd = firstday
+            ld = lastday
+    else:
+        raise Exception("Unknown date type")
+
+    try:
+        if hasattr(vevent, 'rrule'):
+            dates = vevent.rruleset.between(fd, ld, inc=True)
+        elif fd <= vevent.dtstart.value <= ld:
+            dates = [vevent.dtstart.value]
+        else:
+            dates = []
+    except TypeError:
+        print "Type error with event %s" % vevent.summary.value
+        print vevent.dtstart.value
+        raise
+        
+
+    for d in dates:
+        eventlist.append(PcalEvent(d,
+                                   vevent.dtend.value,
+                                   vevent.summary.value))
+icalfile.close()
+
+for e in eventlist:
+    e.write(sys.stdout)
